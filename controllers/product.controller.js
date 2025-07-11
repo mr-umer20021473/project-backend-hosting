@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Products from "../models/Products.js";
 
 
@@ -5,9 +6,11 @@ export const addProduct = async (req,res) =>{
 
     try{
         const { name, price, stock, expiryDate , company} = req.body;
+        const user = req.user.id;
+        
 
         const product = new Products({
-            name,price,stock,expiryDate, company
+            name,price,stock,expiryDate, company, user
         })
 
         await product.save()
@@ -22,28 +25,30 @@ export const addProduct = async (req,res) =>{
 }
 
 export const getProducts = async (req, res) => {
-    try {
-        const { sortBy = 'name', sortType = 'asc', search = '' } = req.query;
+  try {
+    const { sortBy = 'name', sortType = 'asc', search = '' } = req.query;
+    const userId = new mongoose.Types.ObjectId(req.user.id);
 
-        const searchFilter = search
-            ? {
-                  $or: [
-                      { name: { $regex: search, $options: 'i' } },
+    const searchFilter = {
+      user: userId,
+      ...(search && {
+        $or: [
+          { name: { $regex: search, $options: 'i' } }
+        ]
+      })
+    };
 
-                  ],
-              }
-            : {};
+    const sortOrder = sortType === 'desc' ? -1 : 1;
+    const sortOptions = { [sortBy]: sortOrder };
 
-        const sortOrder = sortType === 'desc' ? -1 : 1;
-        const sortOptions = { [sortBy]: sortOrder };
+    const products = await Products.find(searchFilter).sort(sortOptions);
 
-        const products = await Products.find(searchFilter).sort(sortOptions);
-
-        res.json(products);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
+
 
 
 export const getProductById = async (req, res) => {

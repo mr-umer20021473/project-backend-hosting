@@ -5,6 +5,8 @@ import Sale from "../models/Sales.js";
 export const addSale = async (req, res) => {
     try {
         const { product, quantity, totalPrice } = req.body;
+        const user = req.user.id;
+
         
         const med = await Products.findById(product);
         if (!med) return res.status(404).json({ message: 'Product not found' });
@@ -13,7 +15,7 @@ export const addSale = async (req, res) => {
         med.stock -= quantity;
         await med.save();
 
-        const sale = new Sale({ product, quantity, totalPrice });
+        const sale = new Sale({ product, quantity, totalPrice , user });
         await sale.save();
         res.status(201).json({message: 'Sale created successfully',sale});
     } catch (error) {
@@ -23,7 +25,9 @@ export const addSale = async (req, res) => {
 
 export const getAllSales = async (req, res) => {
     try {
-        const sales = await Sale.find().populate('product');
+        const user = req.user.id;
+
+        const sales = await Sale.find({user}).populate('product');
         res.json(sales);
     } catch (error) {
         res.status(500).json({ message: error.message });
